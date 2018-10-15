@@ -122,10 +122,10 @@ static void register_activity_callback(const struct activity_recognition_device 
 	pthread_mutex_unlock(&callback_mutex);
 }
 
-static bool check_activity_event(uint32_t activity_handle, uint32_t event_type)
+static int check_activity_event(uint32_t activity_handle, uint32_t event_type)
 {
 	if (activity_handle > count)
-		return false;
+		return 0;
 
 	/* Also return false if the handle is 0 - this is reserved for flush
 	 * event, that is currently not supported. */
@@ -135,11 +135,11 @@ static bool check_activity_event(uint32_t activity_handle, uint32_t event_type)
 	switch (event_type) {
 		case ACTIVITY_EVENT_ENTER:
 		case ACTIVITY_EVENT_EXIT:
-			return true;
+			return 1;
 		case ACTIVITY_EVENT_FLUSH_COMPLETE:
 			/* Not supported yet */
 		default:
-			return false;
+			return 0;
 	}
 }
 
@@ -308,7 +308,7 @@ static void process_enabling_activity_ev(uint8_t activity, uint8_t event)
 	struct epoll_event ev_data;
 	int dev_fd, ev_index, ret;
 	unsigned int i;
-	bool open_now = false;
+	int open_now = 0;
 
 	/* Allocate event structure and populate it */
 	ev = malloc(sizeof(*ev));
@@ -340,7 +340,7 @@ static void process_enabling_activity_ev(uint8_t activity, uint8_t event)
 		if (ret < 0)
 			goto dev_err;
 
-		open_now = true;
+		open_now = 1;
 
 		ev_data.events	= EPOLLIN;
 		ev_data.data.fd	= activ->event_fd;
@@ -370,7 +370,7 @@ static void process_enabling_activity_ev(uint8_t activity, uint8_t event)
 	 * channel descriptor structure.
 	 */
 	activ->event[ev_index]		= ev;
-	activ->monitored[ev_index]	= true;
+	activ->monitored[ev_index]	= 1;
 	activ->event_count++;
 
 	return;
@@ -386,17 +386,17 @@ dev_err:
 	free(ev);
 }
 
-static bool device_not_monitored(int dev_num)
+static int device_not_monitored(int dev_num)
 {
 	unsigned int i;
 
 	for (i = 1; i <= count; i++)
 		if (supported_activities[i].dev_num == dev_num &&
 		    supported_activities[i].event_count > 0) {
-			return false;
+			return 0;
 		}
 
-	return true;
+	return 1;
 }
 
 static void process_disabling_activity_ev(uint8_t activity, uint8_t event)
@@ -418,7 +418,7 @@ static void process_disabling_activity_ev(uint8_t activity, uint8_t event)
 	}
 
 	/* Mark that the <activity, event> pair is not monitored any longer. */
-	activ->monitored[ev_index] = false;
+	activ->monitored[ev_index] = 0;
 	activ->event_count--;
 
 	/* Close the event fd if this is the last pair monitored for the given
@@ -685,7 +685,7 @@ static void add_activity(int sensor_catalog_index, int channel_index,
 
 	for (i = 0; i < MAX_EVENTS_PER_ACTIVITY; i++) {
 		supported_activities[index].event[i]		= NULL;
-		supported_activities[index].monitored[i]	= false;
+		supported_activities[index].monitored[i]	= 0;
 	}
 	supported_activities[index].modifier			= modifier;
 	supported_activities[index].event_count			= 0;
@@ -697,21 +697,21 @@ static void add_activity(int sensor_catalog_index, int channel_index,
 	supported_activity_names[index] = name;
 }
 
-static bool is_activity_valid(const char *activity_name)
+static int is_activity_valid(const char *activity_name)
 {
 	unsigned int i;
 
 	/* Look if this activity has not been already added */
 	for (i = 1; i <= count; i++)
 		if (strcmp(supported_activity_names[i], activity_name) == 0)
-			return false;
+			return 0;
 
 	/* Check that the found activity is recognized by this API */
 	for (i = 0; i < MAX_ACTIVITIES; i++)
 		if (strcmp(sysfs_activity_names[i], activity_name) == 0)
-			return true;
+			return 1;
 
-	return false;
+	return 0;
 }
 
 /* Get all possible activities provided by the IIO sensors */

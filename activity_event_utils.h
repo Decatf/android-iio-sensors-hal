@@ -34,7 +34,7 @@ struct activity_event_info {
 	int 			dev_num;
 	int 			event_fd;
 	int 			event_count;
-	bool			monitored[MAX_EVENTS_PER_ACTIVITY];
+	int			monitored[MAX_EVENTS_PER_ACTIVITY];
 };
 
 struct control_event_data {
