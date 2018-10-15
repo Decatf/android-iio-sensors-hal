@@ -109,8 +109,11 @@ int sensor_get_st_prop (int s, const char* sel, char val[MAX_NAME_SIZE])
 
 	/* First try most specialized form, like ro.iio.anglvel.bmg160.name */
 
-	snprintf(extended_sel, PROP_NAME_MAX, "%s.%s",
-		 sensor[s].internal_name, sel);
+	if (strlen(sensor[s].internal_name) != 0)
+		snprintf(extended_sel, PROP_NAME_MAX, "%s.%s",
+			 sensor[s].internal_name, sel);
+	else
+		snprintf(extended_sel, PROP_NAME_MAX, "%s", sel);
 
 	snprintf(prop_name, PROP_NAME_MAX, PROP_BASE, prefix, extended_sel);
 
